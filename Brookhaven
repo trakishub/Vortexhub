@@ -1,0 +1,559 @@
+--========================================================--
+-- VÓRTEX HUB - LOADING SCREEN
+-- Estilo: preto + roxo neon, inspirado na referência enviada
+-- Coloque como LocalScript em ReplicatedFirst
+--========================================================--
+
+local Players = game:GetService("Players")
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
+local TweenService = game:GetService("TweenService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+pcall(function()
+	ReplicatedFirst:RemoveDefaultLoadingScreen()
+end)
+
+--========================================================--
+-- CONFIG
+--========================================================--
+
+local PURPLE = Color3.fromRGB(170, 45, 255)
+local PURPLE_BRIGHT = Color3.fromRGB(215, 110, 255)
+local PURPLE_DARK = Color3.fromRGB(65, 0, 105)
+local BLACK = Color3.fromRGB(1, 1, 5)
+local WHITE = Color3.fromRGB(255, 255, 255)
+
+local MIN_TIME = 8
+local START_TIME = os.clock()
+
+local gameName = "Carregando..."
+pcall(function()
+	gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
+end)
+
+--========================================================--
+-- GUI
+--========================================================--
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "VortexLoadingScreen"
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = 999999
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = playerGui
+
+--========================================================--
+-- FUNÇÕES
+--========================================================--
+
+local function corner(object, radius)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, radius)
+	c.Parent = object
+	return c
+end
+
+local function stroke(object, color, thickness, transparency)
+	local s = Instance.new("UIStroke")
+	s.Color = color
+	s.Thickness = thickness
+	s.Transparency = transparency or 0
+	s.Parent = object
+	return s
+end
+
+local function newLabel(parent, text, position, size, font, color, textSize)
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.Position = position
+	label.Size = size
+	label.Font = font
+	label.TextColor3 = color
+	label.TextSize = textSize
+	label.TextXAlignment = Enum.TextXAlignment.Center
+	label.TextYAlignment = Enum.TextYAlignment.Center
+	label.Parent = parent
+	return label
+end
+
+--========================================================--
+-- FUNDO
+--========================================================--
+
+local Background = Instance.new("Frame")
+Background.Size = UDim2.fromScale(1, 1)
+Background.BackgroundColor3 = BLACK
+Background.BorderSizePixel = 0
+Background.Parent = ScreenGui
+
+--========================================================--
+-- IMAGEM DE FUNDO 
+--========================================================--
+
+local BackgroundImage = Instance.new("ImageLabel")
+BackgroundImage.Name = "BackgroundImage"
+BackgroundImage.Size = UDim2.fromScale(1, 1)
+BackgroundImage.Position = UDim2.fromScale(0.5, 0.5)
+BackgroundImage.AnchorPoint = Vector2.new(0.5, 0.5)
+BackgroundImage.BackgroundTransparency = 1
+BackgroundImage.Image = "rbxassetid://84509919481682"
+BackgroundImage.ScaleType = Enum.ScaleType.Crop
+BackgroundImage.ImageTransparency = 0.3 -- Ajustado para a imagem aparecer suavemente no fundo
+BackgroundImage.ZIndex = 1
+BackgroundImage.Parent = Background -- Agora está dentro do Background para ficar no lugar correto
+
+local Gradient = Instance.new("UIGradient")
+Gradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 0, 30)),
+	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(1, 1, 5)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 0, 30))
+})
+Gradient.Rotation = 90
+Gradient.Parent = Background
+
+-- brilho central
+local CenterGlow = Instance.new("Frame")
+CenterGlow.Size = UDim2.fromScale(0.48, 0.48)
+CenterGlow.Position = UDim2.fromScale(0.5, 0.46)
+CenterGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+CenterGlow.BackgroundColor3 = PURPLE
+CenterGlow.BackgroundTransparency = 0.975
+CenterGlow.BorderSizePixel = 0
+CenterGlow.ZIndex = 2
+CenterGlow.Parent = Background
+corner(CenterGlow, 999)
+
+task.spawn(function()
+	while ScreenGui.Parent do
+		TweenService:Create(CenterGlow, TweenInfo.new(2.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+			BackgroundTransparency = 0.965
+		}):Play()
+		task.wait(2.2)
+		TweenService:Create(CenterGlow, TweenInfo.new(2.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+			BackgroundTransparency = 0.985
+		}):Play()
+		task.wait(2.2)
+	end
+end)
+
+--========================================================--
+-- FOGO / ENERGIA ROXA NAS BORDAS
+--========================================================--
+
+local rng = Random.new()
+
+local function createFloatingParticle()
+	local particle = Instance.new("Frame")
+
+	local size = rng:NextInteger(2, 6)
+
+	particle.Size = UDim2.fromOffset(size, size)
+	particle.Position = UDim2.fromScale(
+		rng:NextNumber(),
+		rng:NextNumber()
+	)
+	particle.AnchorPoint = Vector2.new(0.5, 0.5)
+	particle.BackgroundColor3 = PURPLE_BRIGHT
+	particle.BackgroundTransparency = rng:NextNumber(0.25, 0.75)
+	particle.BorderSizePixel = 0
+	particle.ZIndex = 3
+	particle.Parent = Background
+
+	corner(particle, 999)
+
+	local glow = Instance.new("UIStroke")
+	glow.Color = PURPLE
+	glow.Thickness = rng:NextNumber(1, 2.5)
+	glow.Transparency = 0.45
+	glow.Parent = particle
+
+	task.spawn(function()
+		while particle.Parent do
+			local targetX = math.clamp(
+				particle.Position.X.Scale + rng:NextNumber(-0.12, 0.12),
+				-0.05,
+				1.05
+			)
+
+			local targetY = math.clamp(
+				particle.Position.Y.Scale + rng:NextNumber(-0.12, 0.12),
+				-0.05,
+				1.05
+			)
+
+			local targetSize = rng:NextInteger(2, 7)
+
+			local tween = TweenService:Create(
+				particle,
+				TweenInfo.new(
+					rng:NextNumber(2.5, 5.5),
+					Enum.EasingStyle.Sine,
+					Enum.EasingDirection.InOut
+				),
+				{
+					Position = UDim2.fromScale(targetX, targetY),
+					Size = UDim2.fromOffset(targetSize, targetSize),
+					BackgroundTransparency = rng:NextNumber(0.2, 0.82)
+				}
+			)
+
+			tween:Play()
+			tween.Completed:Wait()
+		end
+	end)
+
+	task.spawn(function()
+		while particle.Parent do
+			TweenService:Create(
+				glow,
+				TweenInfo.new(
+					rng:NextNumber(0.8, 1.6),
+					Enum.EasingStyle.Sine,
+					Enum.EasingDirection.InOut
+				),
+				{
+					Transparency = rng:NextNumber(0.15, 0.8)
+				}
+			):Play()
+
+			task.wait(rng:NextNumber(0.8, 1.6))
+		end
+	end)
+end
+
+for _ = 1, 65 do
+	createFloatingParticle()
+end
+
+-- partículas pequenas
+for _ = 1, 55 do
+	local dot = Instance.new("Frame")
+	local s = rng:NextInteger(1, 4)
+
+	dot.Size = UDim2.fromOffset(s, s)
+	dot.Position = UDim2.fromScale(rng:NextNumber(), rng:NextNumber())
+	dot.AnchorPoint = Vector2.new(0.5, 0.5)
+	dot.BackgroundColor3 = PURPLE_BRIGHT
+	dot.BackgroundTransparency = rng:NextNumber(0.25, 0.8)
+	dot.BorderSizePixel = 0
+	dot.ZIndex = 2
+	dot.Parent = Background
+	corner(dot, 999)
+
+	task.spawn(function()
+		while dot.Parent do
+			TweenService:Create(dot, TweenInfo.new(rng:NextNumber(0.7, 2), Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+				BackgroundTransparency = rng:NextNumber(0.2, 0.9)
+			}):Play()
+			task.wait(rng:NextNumber(0.7, 2))
+		end
+	end)
+end
+
+--========================================================--
+-- SOM 
+--========================================================--
+
+local Sound = Instance.new("Sound")
+Sound.SoundId = "rbxassetid://9085027122"
+Sound.Volume = 0.7
+Sound.Looped = false
+Sound.Parent = Background
+Sound:Play()
+
+--========================================================--
+-- CONTEÚDO CENTRAL
+--========================================================--
+
+local Content = Instance.new("Frame")
+Content.Size = UDim2.fromScale(0.92, 0.92)
+Content.Position = UDim2.fromScale(0.5, 0.5)
+Content.AnchorPoint = Vector2.new(0.5, 0.5)
+Content.BackgroundTransparency = 1
+Content.ZIndex = 10
+Content.Parent = Background
+
+-- círculo do avatar
+local AvatarRing = Instance.new("Frame")
+AvatarRing.Size = UDim2.fromOffset(145, 145)
+AvatarRing.Position = UDim2.fromScale(0.5, 0.205)
+AvatarRing.AnchorPoint = Vector2.new(0.5, 0.5)
+AvatarRing.BackgroundColor3 = Color3.fromRGB(5, 0, 10)
+AvatarRing.BorderSizePixel = 0
+AvatarRing.ZIndex = 11
+AvatarRing.Parent = Content
+corner(AvatarRing, 999)
+stroke(AvatarRing, PURPLE, 3, 0.05)
+
+local AvatarGlow = Instance.new("UIStroke")
+AvatarGlow.Color = PURPLE_BRIGHT
+AvatarGlow.Thickness = 8
+AvatarGlow.Transparency = 0.75
+AvatarGlow.Parent = AvatarRing
+
+local Avatar = Instance.new("ImageLabel")
+Avatar.Size = UDim2.fromScale(0.91, 0.91)
+Avatar.Position = UDim2.fromScale(0.5, 0.5)
+Avatar.AnchorPoint = Vector2.new(0.5, 0.5)
+Avatar.BackgroundTransparency = 1
+Avatar.ZIndex = 12
+Avatar.Parent = AvatarRing
+corner(Avatar, 999)
+
+local ok, thumbnail = pcall(function()
+	return Players:GetUserThumbnailAsync(
+		player.UserId,
+		Enum.ThumbnailType.HeadShot,
+		Enum.ThumbnailSize.Size420x420
+	)
+end)
+
+if ok then
+	Avatar.Image = thumbnail
+end
+
+task.spawn(function()
+	while ScreenGui.Parent do
+		TweenService:Create(AvatarGlow, TweenInfo.new(1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+			Transparency = 0.35,
+			Thickness = 11
+		}):Play()
+		task.wait(1.1)
+		TweenService:Create(AvatarGlow, TweenInfo.new(1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+			Transparency = 0.8,
+			Thickness = 6
+		}):Play()
+		task.wait(1.1)
+	end
+end)
+
+--========================================================--
+-- TÍTULO
+--========================================================--
+
+local Title = newLabel(
+	Content,
+	"VÓRTEX",
+	UDim2.fromScale(0.08, 0.34),
+	UDim2.fromScale(0.84, 0.12),
+	Enum.Font.GothamBlack,
+	WHITE,
+	58
+)
+Title.ZIndex = 12
+stroke(Title, PURPLE, 1.5, 0.15)
+
+local Hub = newLabel(
+	Content,
+	"HUB",
+	UDim2.fromScale(0.25, 0.45),
+	UDim2.fromScale(0.50, 0.09),
+	Enum.Font.GothamBlack,
+	PURPLE_BRIGHT,
+	43
+)
+Hub.ZIndex = 12
+
+-- linhas laterais
+for side, x in ipairs({0.18, 0.82}) do
+	local line = Instance.new("Frame")
+	line.Size = UDim2.fromScale(0.16, 0.003)
+	line.Position = UDim2.fromScale(x, 0.485)
+	line.AnchorPoint = Vector2.new(side == 1 and 0 or 1, 0.5)
+	line.BackgroundColor3 = PURPLE
+	line.BorderSizePixel = 0
+	line.ZIndex = 12
+	line.Parent = Content
+	corner(line, 999)
+end
+
+--========================================================--
+-- TEXTOS
+--========================================================--
+
+local Status = newLabel(
+	Content,
+	"Preparando o Hub...",
+	UDim2.fromScale(0.12, 0.565),
+	UDim2.fromScale(0.76, 0.06),
+	Enum.Font.GothamBold,
+	PURPLE_BRIGHT,
+	22
+)
+Status.ZIndex = 12
+
+local GameLabel = newLabel(
+	Content,
+	"Entrando em: " .. gameName,
+	UDim2.fromScale(0.10, 0.625),
+	UDim2.fromScale(0.80, 0.055),
+	Enum.Font.GothamMedium,
+	Color3.fromRGB(190, 135, 220),
+	17
+)
+GameLabel.ZIndex = 12
+
+--========================================================--
+-- BARRA
+--========================================================--
+
+local BarBG = Instance.new("Frame")
+BarBG.Size = UDim2.fromScale(0.54, 0.018)
+BarBG.Position = UDim2.fromScale(0.5, 0.715)
+BarBG.AnchorPoint = Vector2.new(0.5, 0.5)
+BarBG.BackgroundColor3 = Color3.fromRGB(18, 5, 25)
+BarBG.BorderSizePixel = 0
+BarBG.ZIndex = 12
+BarBG.Parent = Content
+corner(BarBG, 999)
+stroke(BarBG, PURPLE, 1.5, 0.1)
+
+local Bar = Instance.new("Frame")
+Bar.Size = UDim2.new(0, 0, 1, 0)
+Bar.BackgroundColor3 = PURPLE
+Bar.BorderSizePixel = 0
+Bar.ZIndex = 13
+Bar.Parent = BarBG
+corner(Bar, 999)
+
+local BarGradient = Instance.new("UIGradient")
+BarGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, PURPLE_DARK),
+	ColorSequenceKeypoint.new(0.5, PURPLE_BRIGHT),
+	ColorSequenceKeypoint.new(1, PURPLE)
+})
+BarGradient.Parent = Bar
+
+local Percent = newLabel(
+	Content,
+	"0%",
+	UDim2.fromScale(0.38, 0.75),
+	UDim2.fromScale(0.24, 0.055),
+	Enum.Font.GothamBlack,
+	PURPLE_BRIGHT,
+	22
+)
+Percent.ZIndex = 12
+
+--========================================================--
+-- ANIMAÇÃO DE ENTRADA
+--========================================================--
+
+for _, obj in ipairs({AvatarRing, Title, Hub, Status, GameLabel, BarBG, Percent}) do
+	if obj:IsA("TextLabel") then
+		obj.TextTransparency = 1
+	elseif obj == AvatarRing then
+		obj.BackgroundTransparency = 1
+	end
+end
+
+Avatar.ImageTransparency = 1
+
+task.wait(0.15)
+
+TweenService:Create(AvatarRing, TweenInfo.new(0.7, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+	BackgroundTransparency = 0
+}):Play()
+
+TweenService:Create(Avatar, TweenInfo.new(0.7), {
+	ImageTransparency = 0
+}):Play()
+
+for _, label in ipairs({Title, Hub, Status, GameLabel, Percent}) do
+	TweenService:Create(label, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		TextTransparency = 0
+	}):Play()
+end
+
+TweenService:Create(BarBG, TweenInfo.new(0.7), {
+	BackgroundTransparency = 0
+}):Play()
+
+--========================================================--
+-- CARREGAMENTO
+--========================================================--
+
+local messages = {
+	{0,  "Preparando o Hub..."},
+	{20, "Carregando interface..."},
+	{45, "Carregando módulos..."},
+	{70, "Conectando ao jogo..."},
+	{88, "Finalizando..."},
+	{97, "Quase pronto..."},
+}
+
+for i = 0, 100 do
+	local message = messages[1][2]
+
+	for _, data in ipairs(messages) do
+		if i >= data[1] then
+			message = data[2]
+		end
+	end
+
+	Status.Text = message
+	Percent.Text = i .. "%"
+
+	TweenService:Create(
+		Bar,
+		TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{Size = UDim2.new(i / 100, 0, 1, 0)}
+	):Play()
+
+	task.wait(0.045)
+end
+
+-- garante tempo mínimo na tela
+local elapsed = os.clock() - START_TIME
+if elapsed < MIN_TIME then
+	task.wait(MIN_TIME - elapsed)
+end
+
+Status.Text = "Carregamento concluído!"
+Percent.Text = "100%"
+Bar.Size = UDim2.new(1, 0, 1, 0)
+
+task.wait(0.7)
+
+--========================================================--
+-- FADE OUT
+--========================================================--
+
+local fadeInfo = TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+for _, obj in ipairs(Content:GetDescendants()) do
+	if obj:IsA("TextLabel") then
+		TweenService:Create(obj, fadeInfo, {TextTransparency = 1}):Play()
+	elseif obj:IsA("ImageLabel") then
+		TweenService:Create(obj, fadeInfo, {ImageTransparency = 1}):Play()
+	elseif obj:IsA("UIStroke") then
+		TweenService:Create(obj, fadeInfo, {Transparency = 1}):Play()
+	elseif obj:IsA("Frame") then
+		TweenService:Create(obj, fadeInfo, {BackgroundTransparency = 1}):Play()
+	end
+end
+
+for _, obj in ipairs(Background:GetChildren()) do
+	if obj:IsA("Frame") then
+		TweenService:Create(obj, fadeInfo, {BackgroundTransparency = 1}):Play()
+	elseif obj:IsA("ImageLabel") then
+		TweenService:Create(obj, fadeInfo, {ImageTransparency = 1}):Play()
+	end
+end
+
+task.wait(0.5)
+
+ScreenGui:Destroy()
+
+task.wait(0.2)
+
+-- Executa o Vortex Hub depois do loading
+loadstring(game:HttpGet(
+    ""
+))()
