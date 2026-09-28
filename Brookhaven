@@ -339,7 +339,7 @@ end)
 
 local Title = newLabel(
 	Content,
-	"VÓRTEX",
+	"VORTEX",
 	UDim2.fromScale(0.08, 0.34),
 	UDim2.fromScale(0.84, 0.12),
 	Enum.Font.GothamBlack,
