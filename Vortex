@@ -1,0 +1,489 @@
+-- =============================================================================
+-- 1. CARREGAR O HUB PRINCIPAL (EXECUTADO PARA TODOS)
+-- =============================================================================
+pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/trakishub/Vortex-hub-v5/refs/heads/main/Brookhaven%20rp"))()
+end)
+
+-- =============================================================================
+-- 2. CARREGAR O PAINEL ADMINISTRATIVO (EXCLUSIVO PARA AUTORIZADOS)
+-- =============================================================================
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+--==================== LISTAS DE AUTORIZADOS (PAINEL ADM) ====================
+local Donos = { ["Hey_zPUDIM"] = true, ["luke_jokerHk3"] = true }
+local Testers = { ["Marcosjjunioioe123"] = true }
+local Divulgadores = { ["hoangvanhieuCc_39"] = true, ["Tokitooff29"] = true, ["biadofrostzin_7"] = true }
+local Autorizados = {}
+
+local function EstaAutorizado(nome)
+    if Donos[nome] or Testers[nome] or Divulgadores[nome] or Autorizados[nome] then
+        return true
+    end
+    return false
+end
+
+-- Se NÃO estiver autorizado, para a execução do painel aqui mesmo!
+if not EstaAutorizado(LocalPlayer.Name) then
+    return
+end
+
+local TextChatService = game:GetService("TextChatService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = workspace
+local TweenService = game:GetService("TweenService")
+
+local playerOriginalSpeed = {}
+local jaulasCriadas = {}
+
+local function MostrarBannerAviso(autorNome, textoAviso)
+    local screenGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("FxAvisoGui")
+    if screenGui then screenGui:Destroy() end
+
+    local newGui = Instance.new("ScreenGui")
+    newGui.Name = "FxAvisoGui"
+    newGui.IgnoreGuiInset = true
+    newGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local banner = Instance.new("Frame")
+    banner.Size = UDim2.new(0, 420, 0, 75)
+    banner.Position = UDim2.new(0.5, -210, 0, -90)
+    banner.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+    banner.BorderSizePixel = 0
+    banner.Parent = newGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = banner
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(170, 45, 255)
+    stroke.Thickness = 2
+    stroke.Parent = banner
+
+    local avatarImg = Instance.new("ImageLabel")
+    avatarImg.Size = UDim2.new(0, 55, 0, 55)
+    avatarImg.Position = UDim2.new(0, 10, 0.5, -27.5)
+    avatarImg.BackgroundTransparency = 1
+    avatarImg.Parent = banner
+
+    local avCorner = Instance.new("UICorner")
+    avCorner.CornerRadius = UDim.new(0, 99)
+    avCorner.Parent = avatarImg
+
+    pcall(function()
+        local targetPlr = Players:FindFirstChild(autorNome)
+        if targetPlr then
+            local thumb = Players:GetUserThumbnailAsync(targetPlr.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+            avatarImg.Image = thumb
+        end
+    end)
+
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -75, 0, 22)
+    titleLabel.Position = UDim2.new(0, 75, 0, 8)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "🚨 AVISO DE: " .. string.upper(autorNome)
+    titleLabel.TextColor3 = Color3.fromRGB(215, 110, 255)
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 13
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = banner
+
+    local msgLabel = Instance.new("TextLabel")
+    msgLabel.Size = UDim2.new(1, -75, 0, 35)
+    msgLabel.Position = UDim2.new(0, 75, 0, 30)
+    msgLabel.BackgroundTransparency = 1
+    msgLabel.Text = textoAviso
+    msgLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    msgLabel.Font = Enum.Font.GothamMedium
+    msgLabel.TextSize = 12
+    msgLabel.TextWrapped = true
+    msgLabel.TextXAlignment = Enum.TextXAlignment.Left
+    msgLabel.Parent = banner
+
+    TweenService:Create(banner, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, -210, 0, 15)
+    }):Play()
+
+    task.delay(6, function()
+        if banner and banner.Parent then
+            local sai = TweenService:Create(banner, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                Position = UDim2.new(0.5, -210, 0, -90)
+            })
+            sai:Play()
+            sai.Completed:Wait()
+            newGui:Destroy()
+        end
+    end)
+end
+
+local function CriarTag(player, tagTexto, corRGB)
+    if not player.Character or not player.Character:FindFirstChild("Head") then return end
+    local head = player.Character.Head
+    
+    local tagAntiga = head:FindFirstChild("CustomTag")
+    if tagAntiga then tagAntiga:Destroy() end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "CustomTag"
+    billboard.Adornee = head
+    billboard.Size = UDim2.new(0, 160, 0, 32)
+    billboard.StudsOffset = Vector3.new(0, 2.8, 0)
+    billboard.AlwaysOnTop = true
+    billboard.MaxDistance = 150
+    billboard.Parent = head
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    frame.BackgroundTransparency = 0.2
+    frame.BorderSizePixel = 0
+    frame.Parent = billboard
+
+    local uiCorner = Instance.new("UICorner")
+    uiCorner.CornerRadius = UDim.new(0, 8)
+    uiCorner.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = tagTexto
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 12
+    label.TextColor3 = corRGB or Color3.fromRGB(255, 255, 255)
+    label.TextStrokeTransparency = 0.5
+    label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    label.Parent = frame
+
+    local glow = Instance.new("UIStroke")
+    glow.Color = corRGB or Color3.fromRGB(170, 45, 255)
+    glow.Thickness = 1.5
+    glow.Parent = frame
+end
+
+local function RemoverTag(player)
+    if player.Character and player.Character:FindFirstChild("Head") then
+        local tag = player.Character.Head:FindFirstChild("CustomTag")
+        if tag then tag:Destroy() end
+    end
+end
+
+local function PrenderEmJaula()
+    if jaulasCriadas[LocalPlayer.Name] then return end
+
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    local pos = root.Position
+    local model = Instance.new("Model")
+    model.Name = "FxJail_" .. LocalPlayer.Name
+
+    local function CriarGrade(cf, size)
+        local p = Instance.new("Part")
+        p.Size = size
+        p.CFrame = cf
+        p.Anchored = true
+        p.Material = Enum.Material.Metal
+        p.BrickColor = BrickColor.new("Really black")
+        p.Transparency = 0.3
+        p.Parent = model
+    end
+
+    CriarGrade(CFrame.new(pos + Vector3.new(0, -3.5, 0)), Vector3.new(8, 1, 8))
+    CriarGrade(CFrame.new(pos + Vector3.new(0, 4.5, 0)), Vector3.new(8, 1, 8))
+    CriarGrade(CFrame.new(pos + Vector3.new(4, 0.5, 0)), Vector3.new(1, 7, 8))
+    CriarGrade(CFrame.new(pos + Vector3.new(-4, 0.5, 0)), Vector3.new(1, 7, 8))
+    CriarGrade(CFrame.new(pos + Vector3.new(0, 0.5, 4)), Vector3.new(8, 7, 1))
+    CriarGrade(CFrame.new(pos + Vector3.new(0, 0.5, -4)), Vector3.new(8, 7, 1))
+
+    model.Parent = Workspace
+    jaulasCriadas[LocalPlayer.Name] = model
+end
+
+local function SoltarDaJaula()
+    if jaulasCriadas[LocalPlayer.Name] then
+        jaulasCriadas[LocalPlayer.Name]:Destroy()
+        jaulasCriadas[LocalPlayer.Name] = nil
+    end
+end
+
+local function EnviarComando(comando, alvo, argumentoExtra)
+    local canal = TextChatService.TextChannels:FindFirstChild("RBXGeneral") or TextChatService.TextChannels:GetChildren()[1]
+    if canal then
+        local textoCompleto = ";" .. comando .. " " .. (alvo or "")
+        if argumentoExtra and argumentoExtra ~= "" then
+            textoCompleto = textoCompleto .. " " .. argumentoExtra
+        end
+        canal:SendAsync(textoCompleto)
+    end
+end
+
+local function ProcessarMensagem(msgText, authorName)
+    if not msgText or not authorName then return end
+
+    local targetLower = LocalPlayer.Name:lower()
+    local character = LocalPlayer.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    local autorPlayer = Players:FindFirstChild(authorName)
+
+    if msgText:lower():match("^;aviso%s+") then
+        local textoAviso = msgText:sub(8)
+        if textoAviso and textoAviso ~= "" then
+            MostrarBannerAviso(authorName, textoAviso)
+        end
+        return
+    end
+
+    if msgText:lower():match("^;bring%s+" .. targetLower) then
+        if autorPlayer and autorPlayer.Character and autorPlayer.Character:FindFirstChild("HumanoidRootPart") and root then
+            root.CFrame = autorPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(2, 1, 0)
+        end
+    end
+
+    if msgText:lower():match("^;tp%s+" .. targetLower) then
+        if autorPlayer and autorPlayer.Character and autorPlayer.Character:FindFirstChild("HumanoidRootPart") and root then
+            root.CFrame = autorPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(2, 1, 0)
+        end
+    end
+
+    if msgText:lower():match("^;jail%s+" .. targetLower) then
+        PrenderEmJaula()
+    end
+
+    if msgText:lower():match("^;unjail%s+" .. targetLower) then
+        SoltarDaJaula()
+    end
+
+    if msgText:lower():match("^;kick%s+" .. targetLower) then
+        local partes = {}
+        for palavra in msgText:gmatch("%S+") do table.insert(partes, palavra) end
+        local motivo = table.concat(partes, " ", 3)
+        LocalPlayer:Kick((motivo ~= "") and motivo or "You got kicked by Fx client Hub")
+    end
+
+    if msgText:lower():match("^;ban%s+" .. targetLower) then
+        local partes = {}
+        for palavra in msgText:gmatch("%S+") do table.insert(partes, palavra) end
+        local motivo = table.concat(partes, " ", 3)
+        LocalPlayer:Kick((motivo ~= "") and motivo or "You got banned by Fx Hub")
+    end
+
+    if msgText:lower():match("^;kill%s+" .. targetLower) then
+        if character then character:BreakJoints() end
+    end
+
+    if msgText:lower():match("^;killplus%s+" .. targetLower) then
+        if character then
+            character:BreakJoints()
+            if root then
+                for i=1,10 do
+                    local part = Instance.new("Part")
+                    part.Size = Vector3.new(10,10,10)
+                    part.Anchored = false
+                    part.CanCollide = false
+                    part.Material = Enum.Material.Neon
+                    part.BrickColor = BrickColor.Random()
+                    part.CFrame = root.CFrame
+                    part.Parent = Workspace
+                    local bv = Instance.new("BodyVelocity")
+                    bv.Velocity = Vector3.new(math.random(-50,50), math.random(20,80), math.random(-50,50))
+                    bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+                    bv.Parent = part
+                    game.Debris:AddItem(part,3)
+                end
+            end
+        end
+    end
+
+    if msgText:lower():match("^;backrooms%s+" .. targetLower) then
+        local player = LocalPlayer
+        local mapID = 10581711055
+        local distantPosition = Vector3.new(4000, 7, 0)
+        local teleportPosition = Vector3.new(4029, 9, 24)
+
+        local mapa = game:GetObjects("rbxassetid://"..mapID)[1]
+        mapa.Parent = Workspace
+        if not mapa.PrimaryPart then
+            local part = mapa:FindFirstChildWhichIsA("BasePart")
+            if part then mapa.PrimaryPart = part end
+        end
+        mapa:SetPrimaryPartCFrame(CFrame.new(distantPosition))
+        if player.Character then
+            player.Character:MoveTo(teleportPosition)
+        end
+    end
+
+    if msgText:lower():match("^;fling%s+" .. targetLower) then
+        if root then
+            local tween = TweenService:Create(root, TweenInfo.new(1, Enum.EasingStyle.Linear), {CFrame = CFrame.new(0,100000,0)})
+            tween:Play()
+        end
+    end
+
+    if msgText:lower():match("^;freeze%s+" .. targetLower) then
+        if humanoid then playerOriginalSpeed[targetLower] = humanoid.WalkSpeed; humanoid.WalkSpeed = 0 end
+    end
+
+    if msgText:lower():match("^;unfreeze%s+" .. targetLower) then
+        if humanoid then humanoid.WalkSpeed = playerOriginalSpeed[targetLower] or 16 end
+    end
+end
+
+for _, ch in pairs(TextChatService.TextChannels:GetChildren()) do
+    if ch:IsA("TextChannel") then
+        ch.MessageReceived:Connect(function(msg)
+            if msg.Text and msg.TextSource then
+                ProcessarMensagem(msg.Text, msg.TextSource.Name)
+            end
+        end)
+    end
+end
+
+TextChatService.TextChannels.ChildAdded:Connect(function(ch)
+    if ch:IsA("TextChannel") then
+        ch.MessageReceived:Connect(function(msg)
+            if msg.Text and msg.TextSource then
+                ProcessarMensagem(msg.Text, msg.TextSource.Name)
+            end
+        end)
+    end
+end)
+
+local ok, WindUILib = pcall(function()
+    return loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+end)
+
+local AdminWindow = WindUILib:CreateWindow({
+    Title = "Fx client Hub | Admins/Developers",
+    Icon = "door-open",
+    Author = "by: Vxz",
+    Folder = "Fx - Admins",
+    Size = UDim2.fromOffset(580,460),
+    Transparent = true,
+    Theme = 'Midnight',
+    Resizable = true,
+    SideBarWidth = 200,
+    BackgroundImageTransparency = 0.42,
+    HideSearchBar = true,
+    ScrollBarEnabled = true,
+})
+
+-- ABA ADMIN
+local TabComandos = AdminWindow:Tab({ Title = "Admin", Icon = "terminal" })
+local Section = TabComandos:Section({ Title = "Commands", Icon = "user-cog", Opened = true })
+
+local function getPlayersList()
+    local t = {}
+    for _, p in ipairs(Players:GetPlayers()) do table.insert(t, p.Name) end
+    return t
+end
+
+local TargetName
+local Dropdown = Section:Dropdown({
+    Title = "Selecionar Jogador",
+    Values = getPlayersList(),
+    Value = "",
+    Callback = function(opt) TargetName = opt end
+})
+
+Players.PlayerAdded:Connect(function() Dropdown:SetValues(getPlayersList()) end)
+Players.PlayerRemoving:Connect(function() Dropdown:SetValues(getPlayersList()) end)
+
+local razaoPunicao = ""
+Section:Input({
+    Title = "Mensagem de Kick / Ban",
+    Placeholder = "Digite o motivo aqui...",
+    Callback = function(text) razaoPunicao = text end
+})
+
+local comandos = { "bring", "tp", "kick", "ban", "kill", "killplus", "fling", "backrooms", "freeze", "unfreeze", "jail", "unjail", "verifique" }
+for _, cmd in ipairs(comandos) do
+    Section:Button({
+        Title = cmd:lower(),
+        Desc = "Script for ;"..cmd.." - Target",
+        Callback = function()
+            if cmd == "verifique" then
+                EnviarComando("Fx_users", "")
+            else
+                if TargetName and TargetName ~= "" then
+                    EnviarComando(cmd, TargetName, razaoPunicao)
+                else
+                    warn("Nenhum jogador selecionado!")
+                end
+            end
+        end
+    })
+end
+
+-- ABA AVISOS
+local TabAvisos = AdminWindow:Tab({ Title = "Avisos", Icon = "megaphone" })
+local SecAvisos = TabAvisos:Section({ Title = "Painel de Anúncios Globais", Icon = "bell", Opened = true })
+
+local textoAvisoDigitado = ""
+SecAvisos:Input({
+    Title = "Texto do Aviso",
+    Placeholder = "Escreva o comunicado aqui...",
+    Callback = function(text)
+        textoAvisoDigitado = text
+    end
+})
+
+SecAvisos:Button({
+    Title = "📢 Enviar Aviso Global",
+    Desc = "Mostra sua foto de perfil e o aviso no topo da tela de todos.",
+    Callback = function()
+        if textoAvisoDigitado and textoAvisoDigitado ~= "" then
+            EnviarComando("aviso", textoAvisoDigitado)
+        else
+            warn("Digite um texto para o aviso!")
+        end
+    end
+})
+
+-- ABA TAGS
+local TabTag = AdminWindow:Tab({ Title = "Tags", Icon = "tag" })
+local SecTag = TabTag:Section({ Title = "Gerenciar Tags", Icon = "tag", Opened = true })
+
+local tagSelecionada = "👑 Dono Fx"
+local corSelecionada = Color3.fromRGB(255, 215, 0)
+
+SecTag:Dropdown({
+    Title = "Escolher tipo de Tag",
+    Values = { "👑 Dono Fx", "👁️‍🗨️ Tester Fx", "🛡️ Moderador Fx", "🎥 Divulgador Fx", "💻 Dev Fx" },
+    Value = "👑 Dono Fx",
+    Callback = function(v)
+        tagSelecionada = v
+        if v == "👑 Dono Fx" then corSelecionada = Color3.fromRGB(255, 215, 0)
+        elseif v == "👁️‍🗨️ Tester Fx" then corSelecionada = Color3.fromRGB(100, 200, 255)
+        elseif v == "🛡️ Moderador Fx" then corSelecionada = Color3.fromRGB(0, 255, 128)
+        elseif v == "🎥 Divulgador Fx" then corSelecionada = Color3.fromRGB(255, 100, 180)
+        elseif v == "💻 Dev Fx" then corSelecionada = Color3.fromRGB(255, 100, 180)
+        end
+    end
+})
+
+SecTag:Button({
+    Title = "Adicionar Tag",
+    Desc = "Adiciona a tag selecionada acima da sua cabeça",
+    Callback = function()
+        CriarTag(LocalPlayer, tagSelecionada, corSelecionada)
+    end
+})
+
+SecTag:Button({
+    Title = "Remover Tag",
+    Desc = "Remove sua tag atual",
+    Callback = function()
+        RemoverTag(LocalPlayer)
+    end
+})
+
+local sound = Instance.new("Sound")
+sound.SoundId = "rbxassetid://8486683243"
+sound.Volume = 0.5
+sound.PlayOnRemove = true
+sound.Parent = Workspace
+sound:Destroy()
