@@ -769,7 +769,7 @@ for _, cmd in ipairs(comandos) do
         Desc = "Script for ;"..cmd.." - Target",
         Callback = function()
             if cmd == "verifique" then
-                EnviarComando("Fx_users", "")
+                EnviarComando("vortex_users", "")
             else
                 if TargetName and TargetName ~= "" then
                     EnviarComando(cmd, TargetName, razaoPunicao)
@@ -810,23 +810,20 @@ SecAvisos:Button({
 local TabTag = AdminWindow:Tab({ Title = "Tags", Icon = "tag" })
 local SecTag = TabTag:Section({ Title = "Gerenciar Tags", Icon = "tag", Opened = true })
 
-local tagSelecionada = "👑 DONO 👑"
+local tagSelecionada = "👑 Dono"
 local corSelecionada = Color3.fromRGB(255, 215, 0)
 
 SecTag:Dropdown({
     Title = "Escolher tipo de Tag",
-    Values = { "👑 DONO 👑", "👁️‍🗨️ Tester", "🛡️ Moderador da Vortex", "🎥 Divulgador do vortex ", "💻 Dev" },
-    Value = "👑 DONO 👑",
+    Values = { "👑 Dono ", "👁️‍🗨️ Tester ", "🛡️ Moderador ", "🎥 Divulgador ", "💻 Dev " },
+    Value = "👑 Dono ",
     Callback = function(v)
         tagSelecionada = v
-        if v == "👑 DONO 👑" then corSelecionada = Color3.fromRGB(255, 215, 0)
+        if v == "👑 Dono " then corSelecionada = Color3.fromRGB(255, 215, 0)
         elseif v == "👁️‍🗨️ Tester " then corSelecionada = Color3.fromRGB(100, 200, 255)
-        elseif v == "🛡️ Moderador da Vortex" then corSelecionada = Color3.fromRGB(0, 255, 128)
-        elseif v == "🎥 Divulgador Do Vortex" then corSelecionada = Color3.fromRGB(255, 100, 180)
-        elseif v == "💻 Dev" then corSelecionada = Color3.fromRGB(255, 100, 180)
-        end
-    end
-})
+        elseif v == "🛡️ Moderador " then corSelecionada = Color3.fromRGB(0, 255, 128)
+        elseif v == "🎥 Divulgador " then corSelecionada = Color3.fromRGB(255, 100, 180)
+        elseif v == "💻 Dev " then corSelecionada = Color3.fromRGB(255, 100, 180)
 
 SecTag:Button({
     Title = "Adicionar Tag",
