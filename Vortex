@@ -720,7 +720,7 @@ end)
 if not ok then return end
 
 local AdminWindow = WindUILib:CreateWindow({
-    Title = Vortex Hub | Admin Painel",
+    Title = "Vortex Hub | Admin Painel",
     Icon = "door-open",
     Author = "by: Vitinwz22",
     Folder = "Vortex - Admins",
