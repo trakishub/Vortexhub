@@ -720,10 +720,10 @@ end)
 if not ok then return end
 
 local AdminWindow = WindUILib:CreateWindow({
-    Title = "Fx client Hub | Admins/Developers",
+    Title = Vortex Hub | Admin Painel",
     Icon = "door-open",
-    Author = "by: Vxz",
-    Folder = "Fx - Admins",
+    Author = "by: Vitinwz22",
+    Folder = "Vortex - Admins",
     Size = UDim2.fromOffset(580,460),
     Transparent = true,
     Theme = 'Midnight',
@@ -810,20 +810,20 @@ SecAvisos:Button({
 local TabTag = AdminWindow:Tab({ Title = "Tags", Icon = "tag" })
 local SecTag = TabTag:Section({ Title = "Gerenciar Tags", Icon = "tag", Opened = true })
 
-local tagSelecionada = "👑 Dono Fx"
+local tagSelecionada = "👑 DONO 👑"
 local corSelecionada = Color3.fromRGB(255, 215, 0)
 
 SecTag:Dropdown({
     Title = "Escolher tipo de Tag",
-    Values = { "👑 Dono Fx", "👁️‍🗨️ Tester Fx", "🛡️ Moderador Fx", "🎥 Divulgador Fx", "💻 Dev Fx" },
-    Value = "👑 Dono Fx",
+    Values = { "👑 DONO 👑", "👁️‍🗨️ Tester", "🛡️ Moderador da Vortex", "🎥 Divulgador do vortex ", "💻 Dev" },
+    Value = "👑 DONO 👑",
     Callback = function(v)
         tagSelecionada = v
-        if v == "👑 Dono Fx" then corSelecionada = Color3.fromRGB(255, 215, 0)
-        elseif v == "👁️‍🗨️ Tester Fx" then corSelecionada = Color3.fromRGB(100, 200, 255)
-        elseif v == "🛡️ Moderador Fx" then corSelecionada = Color3.fromRGB(0, 255, 128)
-        elseif v == "🎥 Divulgador Fx" then corSelecionada = Color3.fromRGB(255, 100, 180)
-        elseif v == "💻 Dev Fx" then corSelecionada = Color3.fromRGB(255, 100, 180)
+        if v == "👑 DONO 👑" then corSelecionada = Color3.fromRGB(255, 215, 0)
+        elseif v == "👁️‍🗨️ Tester " then corSelecionada = Color3.fromRGB(100, 200, 255)
+        elseif v == "🛡️ Moderador da Vortex" then corSelecionada = Color3.fromRGB(0, 255, 128)
+        elseif v == "🎥 Divulgador Do Vortex" then corSelecionada = Color3.fromRGB(255, 100, 180)
+        elseif v == "💻 Dev" then corSelecionada = Color3.fromRGB(255, 100, 180)
         end
     end
 })
