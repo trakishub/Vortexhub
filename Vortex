@@ -373,8 +373,8 @@ local Workspace = workspace
 local TweenService = game:GetService("TweenService")
 
 --==================== LISTAS DE AUTORIZADOS (PAINEL ADM) ====================
-local Donos = { ["Hey_zPUDIM"] = true, ["surf_2261"] = true }
-local Testers = { ["jsjsjkss"] = true }
+local Donos = { ["Hey_zPUDIM"] = true, ["luke_jokerHk3"] = true }
+local Testers = { ["Marcosjjunioioe123"] = true }
 local Divulgadores = { ["hoangvanhieuCc_39"] = true, ["Tokitooff29"] = true, ["biadofrostzin_7"] = true }
 local Autorizados = {}
 
@@ -720,10 +720,10 @@ end)
 if not ok then return end
 
 local AdminWindow = WindUILib:CreateWindow({
-    Title = "Vortex Hub | Admin Painel",
+    Title = "Fx client Hub | Admins/Developers",
     Icon = "door-open",
-    Author = "by: Vitinwz22",
-    Folder = "Vortex - Admins",
+    Author = "by: Vxz",
+    Folder = "Fx - Admins",
     Size = UDim2.fromOffset(580,460),
     Transparent = true,
     Theme = 'Midnight',
@@ -769,7 +769,7 @@ for _, cmd in ipairs(comandos) do
         Desc = "Script for ;"..cmd.." - Target",
         Callback = function()
             if cmd == "verifique" then
-                EnviarComando("vortex_users", "")
+                EnviarComando("Fx_users", "")
             else
                 if TargetName and TargetName ~= "" then
                     EnviarComando(cmd, TargetName, razaoPunicao)
@@ -810,20 +810,23 @@ SecAvisos:Button({
 local TabTag = AdminWindow:Tab({ Title = "Tags", Icon = "tag" })
 local SecTag = TabTag:Section({ Title = "Gerenciar Tags", Icon = "tag", Opened = true })
 
-local tagSelecionada = "👑 Dono"
+local tagSelecionada = "👑 Dono Fx"
 local corSelecionada = Color3.fromRGB(255, 215, 0)
 
 SecTag:Dropdown({
     Title = "Escolher tipo de Tag",
-    Values = { "👑 Dono ", "👁️‍🗨️ Tester ", "🛡️ Moderador ", "🎥 Divulgador ", "💻 Dev " },
-    Value = "👑 Dono ",
+    Values = { "👑 Dono Fx", "👁️‍🗨️ Tester Fx", "🛡️ Moderador Fx", "🎥 Divulgador Fx", "💻 Dev Fx" },
+    Value = "👑 Dono Fx",
     Callback = function(v)
         tagSelecionada = v
-        if v == "👑 Dono " then corSelecionada = Color3.fromRGB(255, 215, 0)
-        elseif v == "👁️‍🗨️ Tester " then corSelecionada = Color3.fromRGB(100, 200, 255)
-        elseif v == "🛡️ Moderador " then corSelecionada = Color3.fromRGB(0, 255, 128)
-        elseif v == "🎥 Divulgador " then corSelecionada = Color3.fromRGB(255, 100, 180)
-        elseif v == "💻 Dev " then corSelecionada = Color3.fromRGB(255, 100, 180)
+        if v == "👑 Dono Fx" then corSelecionada = Color3.fromRGB(255, 215, 0)
+        elseif v == "👁️‍🗨️ Tester Fx" then corSelecionada = Color3.fromRGB(100, 200, 255)
+        elseif v == "🛡️ Moderador Fx" then corSelecionada = Color3.fromRGB(0, 255, 128)
+        elseif v == "🎥 Divulgador Fx" then corSelecionada = Color3.fromRGB(255, 100, 180)
+        elseif v == "💻 Dev Fx" then corSelecionada = Color3.fromRGB(255, 100, 180)
+        end
+    end
+})
 
 SecTag:Button({
     Title = "Adicionar Tag",
