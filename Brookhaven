@@ -554,5 +554,5 @@ task.wait(0.2)
 
 -- Executa o Vortex Hub depois do loading
 loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/trakishub/Vortexhub/refs/heads/main/Vortex"
+    "https://raw.githubusercontent.com/trakishub/Vortexhub/refs/heads/main/Fx_Client_Hub_Admin%20(6).lua"
 ))()
