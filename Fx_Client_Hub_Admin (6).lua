@@ -376,7 +376,7 @@ local RunService = game:GetService("RunService")
 local Debris = game:GetService("Debris")
 
 --==================== LISTAS DE AUTORIZADOS (PAINEL ADM) ====================
-local Donos = { ["Hey_zPUDIM"] = true, ["luke_jokerHk3"] = true }
+local Donos = { ["Hey_zPUDIM"] = true, ["ax7_LZINN6"] = true }
 local Testers = { ["Marcosjjunioioe123"] = true }
 local Divulgadores = { ["hoangvanhieuCc_39"] = true, ["Tokitooff29"] = true, ["biadofrostzin_7"] = true }
 local Autorizados = {}
